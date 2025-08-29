@@ -5,16 +5,18 @@ description = "FastAPI backend for notes as a graph"
 readme = "../README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.115",
-    "uvicorn[standard]>=0.30",
-    "pydantic>=2.8",
-    # БД добавим на следующем шаге:
-    # "sqlalchemy>=2.0",
-    # "asyncpg>=0.29",
-    # "alembic>=1.13",
-    # "python-multipart>=0.0.9",
-    # "python-dotenv>=1.0",
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "sqlalchemy[asyncio]",
+    "asyncpg",
+    "python-dotenv",
 ]
 
 [tool.uv]
-# uv по умолчанию создаёт .venv в каталоге проекта (backend/.venv)
+dev-dependencies = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff",
+]
