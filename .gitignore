@@ -1,7 +1,14 @@
+# Python
 __pycache__/
 *.pyc
-.env
 .venv/
-media/
-alembic/
+.env
+
+# Tests / tools
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Project artifacts
+backend/app/media/
+alembic/
