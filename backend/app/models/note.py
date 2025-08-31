@@ -1,7 +1,17 @@
 from datetime import datetime
 
-from sqlalchemy import String, Text, ForeignKey, UniqueConstraint, CheckConstraint, func, Index
-from sqlalchemy import DateTime
+from sqlalchemy import (
+    String,
+    Text,
+    ForeignKey,
+    UniqueConstraint,
+    CheckConstraint,
+    func,
+    Index,
+    DateTime,
+    Integer,
+)
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
@@ -21,8 +31,11 @@ class Note(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, comment="Время создания")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),
                                                  nullable=False, comment="Время последнего обновления")
+    importance: Mapped[Optional[int]] = mapped_column(Integer,nullable=True,comment="Важность заметки от 0 до 9")
+    
     # Ограничения и индексы
     __table_args__ = (
+        CheckConstraint("importance BETWEEN 0 AND 9", name="ck_note_importance"),
         CheckConstraint("length(btrim(title)) > 0", name="ck_note_title_not_empty"),  # Заголовок не может быть пустым
         Index("ix_note_title", "title"),  # Индекс для быстрого поиска по заголовку
         Index("ix_note_title_lower", func.lower(title)),  # Индекс для регистронезависимого поиска

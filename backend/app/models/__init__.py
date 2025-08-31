@@ -1,2 +1,2 @@
-from app.models.note import Note, NoteLink  # noqa: F401
+from app.models.note import Note, NoteLink 
 
