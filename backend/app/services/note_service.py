@@ -1,0 +1,103 @@
+from typing import Optional, List
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, or_, func, select, update
+from sqlalchemy.orm import selectinload
+
+from app.models.note import Note, NoteLink
+from app.schemas.note import NoteCreate, NoteUpdate, NoteLinkCreate
+
+class NoteService:
+    def __init__(self, db: AsyncSession):
+        # Инициализация с сессией БД
+        self.db = db
+        
+    async def create_note(self, note_data: NoteCreate) -> Note:
+        # Создание заметки
+        new_note = Note(**note_data.model_dump())#Pydantic схема → Словарь → SQLAlchemy объект
+        
+        self.db.add(new_note)
+        await self.db.commit()
+        await self.db.refresh(new_note)
+
+        return new_note
+
+    async def get_note(self, note_id: int) -> Optional[Note]:
+        # Получение заметки по ID
+        result = await self.db.execute(select(Note).where(Note.id == note_id))
+        return result.scalar_one_or_none()
+    
+    async def get_notes(self, skip: int = 0, limit: int = 100) -> List[Note]:
+        # Получение списка заметок
+
+        result = await self.db.execute(select(Note).offset(skip).limit(limit))
+        return result.scalars().all()
+
+    
+    async def update_note(self, note_id: int, 
+                          note_data: NoteUpdate) -> Optional[Note]:
+        # Обновление заметки
+        if await self.get_note(note_id) is None:
+            return None
+        else:
+            new_data = note_data.model_dump(exclude_unset=True)
+            result = await self.db.execute(update(Note)
+                                           .where(Note.id == note_id)
+                                           .values(**new_data).returning(Note))
+            await self.db.commit()
+        return result.scalar_one_or_none()
+    
+    async def delete_note(self, note_id: int) -> bool:
+        # Удаление заметки
+        for_delete = await self.get_note(note_id)
+        
+        if for_delete is None:
+            return False
+        else:
+            await self.db.delete(for_delete)
+            await self.db.commit()
+            return True
+
+    
+    async def create_link(self, link_data: NoteLinkCreate) -> Optional[NoteLink]:
+        # Создание связи между заметками
+        if link_data.parent_id == link_data.child_id:
+            return None
+        parent = await self.get_note(link_data.parent_id)
+        child = await self.get_note(link_data.child_id)
+        
+        exists = await self.db.execute(select(NoteLink).where(
+            and_(NoteLink.parent_id == link_data.parent_id,
+                 NoteLink.child_id == link_data.child_id))
+        ).scalar_one_or_none()
+        
+        if parent and child and exists is None:
+            new_link = NoteLink(**link_data.model_dump())
+            self.db.add(new_link)
+            await self.db.commit()
+            await self.db.refresh(new_link)
+            return new_link
+        
+        return None
+        
+    async def get_links_by_participant(self, note_id: int) -> List[NoteLink]:
+        result = await self.db.execute(
+            select(NoteLink).where(
+                or_(
+                    NoteLink.parent_id == note_id,  # Заметка как родитель
+                    NoteLink.child_id == note_id     # Заметка как ребенок
+                )))
+        return result.scalars().all()
+    
+    async def get_link_by_id(self, link_id: int) -> Optional[NoteLink]:
+        result = await self.db.execute(select(NoteLink).where(NoteLink.id == link_id))
+        return result.scalar_one_or_none()
+    
+    async def delete_link(self, link_id: int) -> bool:
+        for_delete = await self.get_link_by_id(link_id)
+        if for_delete is None:
+            return False
+        else:
+            await self.db.delete(for_delete)
+            await self.db.commit()
+            return True
+        
