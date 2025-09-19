@@ -100,4 +100,45 @@ class NoteService:
             await self.db.delete(for_delete)
             await self.db.commit()
             return True
+
+    async def get_ancestors(self, note_id: int) -> List[Note]:
+    """Получить всех предков заметки."""
+        note = self.get_note(note_id)
+        if not note:
+            return []
+
+        parents = note.parents
+        ancestors = []
+
+        for parent in parents:
+            ancestors.append(parent)
+            parent_ancestors = await self.get_ancestors(parent.id)
+            ancestors.extend(parent_ancestors)
+
+        return ancestors
+
+    async def get_descendants(self, note_id: int) -> List[Note]:
+        note = self.get_note(note_id)
+        if not note:
+            return []
+
+        children = note.children
+        descendants = []
+
+        for child in children:
+            descendants.append(child)
+            child_descendants = await self.get_descendants(child.id)
+            descendants.extend(child_descendants)
+
+        return descendants
+
+    async def check_circular_reference(self, parent_id: int, child_id: int) -> bool:
+        if parent_id == child_id:
+            return True
+
+        ancestors = await self.get_ancestors(child_id)
+
+        if parent_id in [ancestor.id for ancestor in ancestors]:
+            return True
         
+        return False
