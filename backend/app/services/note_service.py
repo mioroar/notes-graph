@@ -59,9 +59,11 @@ class NoteService:
 
     
     async def create_link(self, link_data: NoteLinkCreate) -> Optional[NoteLink]:
-        # Создание связи между заметками
-        if link_data.parent_id == link_data.child_id:
+        if await self.check_circular_reference(link_data.parent_id, link_data.child_id):
             return None
+        # Создание связи между заметками
+        # if link_data.parent_id == link_data.child_id:
+        #     return None
         parent = await self.get_note(link_data.parent_id)
         child = await self.get_note(link_data.child_id)
         
@@ -102,8 +104,8 @@ class NoteService:
             return True
 
     async def get_ancestors(self, note_id: int) -> List[Note]:
-    """Получить всех предков заметки."""
-        note = self.get_note(note_id)
+        """Получить всех предков заметки."""
+        note = await self.get_note(note_id)
         if not note:
             return []
 
@@ -118,7 +120,7 @@ class NoteService:
         return ancestors
 
     async def get_descendants(self, note_id: int) -> List[Note]:
-        note = self.get_note(note_id)
+        note = await self.get_note(note_id)
         if not note:
             return []
 
