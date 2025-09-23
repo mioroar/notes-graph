@@ -25,6 +25,26 @@ class NoteService:
         # Получение заметки по ID
         result = await self.db.execute(select(Note).where(Note.id == note_id))
         return result.scalar_one_or_none()
+
+    async def get_full_note(self, note_id: int) -> Optional[Note]:
+        """Получить заметку с загруженными связями для NoteWithRelations.
+    
+        Args:
+          note_id: ID заметки
+        
+        Returns:
+          Note с загруженными parent_links и children_links, или None если не найдена
+        """
+    # Используем selectinload для загрузки связей одним запросом
+        result = await self.db.execute(
+            select(Note)
+            .options(
+                selectinload(Note.parent_links).selectinload(NoteLink.parent),
+                selectinload(Note.children_links).selectinload(NoteLink.child)
+            )
+            .where(Note.id == note_id)
+        )
+        return result.scalar_one_or_none()
     
     async def get_notes(self, skip: int = 0, limit: int = 100) -> List[Note]:
         # Получение списка заметок
@@ -36,14 +56,11 @@ class NoteService:
     async def update_note(self, note_id: int, 
                           note_data: NoteUpdate) -> Optional[Note]:
         # Обновление заметки
-        if await self.get_note(note_id) is None:
-            return None
-        else:
-            new_data = note_data.model_dump(exclude_unset=True)
-            result = await self.db.execute(update(Note)
-                                           .where(Note.id == note_id)
-                                           .values(**new_data).returning(Note))
-            await self.db.commit()
+        new_data = note_data.model_dump(exclude_unset=True)
+        result = await self.db.execute(update(Note)
+                                        .where(Note.id == note_id)
+                                        .values(**new_data).returning(Note))
+        await self.db.commit()
         return result.scalar_one_or_none()
     
     async def delete_note(self, note_id: int) -> bool:

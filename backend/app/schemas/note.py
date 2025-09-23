@@ -98,6 +98,20 @@ class NoteLinkResponse(BaseModel):
         from_attributes = True
 
 
+class NoteLinkSummary(BaseModel):
+    """Упрощенная схема заметки для боковой панели.
+    
+    Содержит только необходимые поля для отображения в списке связанных заметок.
+    Исключает content, created_at, updated_at для экономии трафика.
+    """
+    id: int = Field(..., description="ID заметки")
+    title: str = Field(..., description="Заголовок заметки")
+    importance: Optional[int] = Field(None, description="Важность заметки")
+    
+    class Config:
+        from_attributes = True
+
+
 class NoteWithRelations(NoteResponse):
     """Схема заметки с полной информацией о связанных заметках.
     
@@ -117,4 +131,21 @@ class NoteWithRelations(NoteResponse):
     children: List["NoteResponse"] = Field(
         default_factory=list, 
         description="Список дочерних заметок"
+    )
+
+
+class NoteWithRelationsOptimized(NoteResponse):
+    """Оптимизированная схема заметки с упрощенными связями.
+    
+    Основная заметка содержит полную информацию,
+    связанные заметки - только необходимые поля для боковой панели.
+    Значительно уменьшает размер ответа API.
+    """
+    parents: List[NoteLinkSummary] = Field(
+        default_factory=list,
+        description="Родительские заметки (только ID, title, importance)"
+    )
+    children: List[NoteLinkSummary] = Field(
+        default_factory=list,
+        description="Дочерние заметки (только ID, title, importance)"
     )
