@@ -84,10 +84,15 @@ class NoteService:
         parent = await self.get_note(link_data.parent_id)
         child = await self.get_note(link_data.child_id)
         
-        exists = await self.db.execute(select(NoteLink).where(
-            and_(NoteLink.parent_id == link_data.parent_id,
-                 NoteLink.child_id == link_data.child_id))
-        ).scalar_one_or_none()
+        # exists = await self.db.execute(select(NoteLink).where(
+        #     and_(NoteLink.parent_id == link_data.parent_id,
+        #          NoteLink.child_id == link_data.child_id))
+        # ).scalar_one_or_none()
+
+        result = await self.db.execute(select(NoteLink).where(
+        and_(NoteLink.parent_id == link_data.parent_id,
+             NoteLink.child_id == link_data.child_id)))
+        exists = result.scalar_one_or_none()    
         
         if parent and child and exists is None:
             new_link = NoteLink(**link_data.model_dump())

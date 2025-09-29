@@ -3,8 +3,13 @@ from typing import AsyncIterator
 
 from fastapi import Depends, FastAPI
 from pydantic import BaseModel
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.notes import router as notes_router
+from app.api.links import router as links_router
+
 
 from app.db.session import engine, get_session
 # from app.models.base import Base  # больше не нужно
@@ -25,6 +30,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await engine.dispose()
 
 app = FastAPI(title="Notes Graph API", version="0.1.0", lifespan=lifespan)
+
+app.include_router(notes_router)
+app.include_router(links_router)
 
 @app.get("/health", response_model=HealthOut)
 def health_check() -> HealthOut:
